@@ -42,10 +42,11 @@ canvas {
 
     <script>
 var demSource = new mlcontour.DemSource({
-            url: "https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png",
+            url: "https://tiles.mapterhorn.com/{z}/{x}/{y}.webp",
             encoding: "terrarium",
-            maxzoom: 13,
+            maxzoom: 17,
             timeoutMs: 10_000, // timeout on fetch requests
+            worker: true,
         });
 
         // calls maplibregl.addProtocol for the shared cache and contour protocols
@@ -58,11 +59,11 @@ const baseStyle = {
 	"sources": {
     "tilezen": {
 			"type": "raster-dem",
-			"tiles": ["https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png"],
-			"tileSize": 256,
+			"tiles": ["https://tiles.mapterhorn.com/{z}/{x}/{y}.webp"],
+			"tileSize": 512,
                                    "encoding": "terrarium",
       "attribution": "&copy; Tilezen",
-      "maxzoom": 13
+      "maxzoom": 17
     },
 "swissmap": {
       "type": "vector",
@@ -159,8 +160,8 @@ mapOverlay.addSource("contour-source", {
                     demSource.contourProtocolUrl({
                         thresholds: {
                             // zoom: [minor, major]
-                            11: [100, 500],
-                            14: [20, 100]
+                            13: [100, 500],
+                            15: [20, 100]
                         },
                         // optional, override vector tile parameters:
                         contourLayer: "contours",
@@ -168,7 +169,7 @@ mapOverlay.addSource("contour-source", {
                         levelKey: "level",
                         extent: 4096,
                         buffer: 1,
-                        overzoom: 0,
+                        overzoom: 2,
                     }),
                 ],
                 maxzoom: 15,
@@ -182,7 +183,7 @@ mapOverlay.addLayer({
                     "line-color": "rgba(215, 151, 060, 1)",
                     // level = highest index in thresholds array the elevation is a multiple of
                     "line-width": ["match", ["get", "level"], 1, 1, .5],
-                    "line-opacity": ["step", ["zoom"], 0.6, 12, 0.7, 14, 1.0],
+                    "line-opacity": ["step", ["zoom"], 0.7, 14, 1.0],
                     
                 },
             });
