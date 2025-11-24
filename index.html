@@ -1,226 +1,251 @@
 <!doctype html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <link href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css" rel="stylesheet" />
-    <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script src="https://unpkg.com/maplibre-contour@0.0.5/dist/index.min.js"></script>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <style>
-           body {
-  margin: 0;
-}
+  <link href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/maplibre-contour@0.0.5/dist/index.min.js"></script>
 
-.container {
-	position: relative;
-	width: 100vw;
-	height: 100vh;
-}
-
-.container > div {
-	position: absolute;
-	left: 0;
-	top: 0;
-	width: 100%;
-	height: 100%;
-}
-
-canvas {
-  mix-blend-mode: multiply;
-}
-
-    </style>
-  </head>
-  <body>
-    <div class="container">
-  <div id="mapBase"></div>
-  <div id="mapBase2"></div>
-  <div id="mapOverlay"></div>
-</div>
-
-    <script>
-var demSource = new mlcontour.DemSource({
-            url: "https://tiles.mapterhorn.com/{z}/{x}/{y}.webp",
-            encoding: "terrarium",
-            maxzoom: 17,
-            timeoutMs: 10_000, // timeout on fetch requests
-            worker: true,
-        });
-
-        // calls maplibregl.addProtocol for the shared cache and contour protocols
-        demSource.setupMaplibre(maplibregl);
-
-
-
-const baseStyle = {
-  "version": 8,
-	"sources": {
-    "tilezen": {
-			"type": "raster-dem",
-			"tiles": ["https://tiles.mapterhorn.com/{z}/{x}/{y}.webp"],
-			"tileSize": 512,
-                                   "encoding": "terrarium",
-      "attribution": "&copy; Tilezen",
-      "maxzoom": 17
-    },
-"swissmap": {
-      "type": "vector",
-      "url": "https://wipfli.github.io/swiss-map/tilejson-swissmap.json"
+  <style>
+    body {
+      margin: 0;
     }
-  },
-  "layers": [
+
+    .container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .container>div {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    canvas {
+      mix-blend-mode: multiply;
+    }
+
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 9999;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-family: sans-serif;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="controls">
+    <label>
+      <input id="blendToggle" type="checkbox" checked>
+      Multiply blend
+    </label>
+    <br>
+    <label>
+      <input id="contourToggle" type="checkbox" checked>
+      Show contour lines
+    </label>
+  </div>
+  <div class="container">
+    <div id="containerA"></div>
+    <div id="containerB"></div>
+    <div id="containerC"></div>
+  </div>
+
+  <script>
+    var demSource = new mlcontour.DemSource({
+      url: "https://tiles.mapterhorn.com/{z}/{x}/{y}.webp",
+      encoding: "terrarium",
+      maxzoom: 17,
+      timeoutMs: 10_000,
+      worker: true,
+    });
+
+    demSource.setupMaplibre(maplibregl);
+
+    const hillshadeStyle = {
+      "version": 8,
+      "sources": {
+        "tilezen": {
+          "type": "raster-dem",
+          "tiles": ["https://tiles.mapterhorn.com/{z}/{x}/{y}.webp"],
+          "tileSize": 512,
+          "encoding": "terrarium",
+          "attribution": "&copy; Tilezen",
+          "maxzoom": 17
+        },
+        "swissmap": {
+          "type": "vector",
+          "url": "https://wipfli.github.io/swiss-map/tilejson-swissmap.json"
+        }
+      },
+      "layers": [
         {
-                    id: "hills",
-                type: "hillshade",
-                source: "tilezen",
-                paint: {
-"hillshade-method": "igor",
-                    "hillshade-exaggeration": 1,
-                    "hillshade-highlight-color": "rgba(255, 255, 228, 1)",
-                    "hillshade-shadow-color": "rgb(173, 188, 199)",
-                    "hillshade-illumination-direction": 315
-                }
-            } ]
-};
+          id: "hills",
+          type: "hillshade",
+          source: "tilezen",
+          paint: {
+            "hillshade-method": "igor",
+            "hillshade-exaggeration": 1,
+            "hillshade-highlight-color": "rgba(255, 255, 228, 1)",
+            "hillshade-shadow-color": "rgb(173, 188, 199)",
+            "hillshade-illumination-direction": 315
+          }
+        }]
+    };
 
-const base2Style = {
-  "version": 8,
-	"sources": {"swissmap": {
-      "type": "vector",
-      "url": "https://wipfli.github.io/swiss-map/tilejson-swissmap.json"
-    }},
-"glyphs": "https://wipfli.github.io/swiss-map/font/{fontstack}/{range}.pbf",
-  "layers": [ {
-      "id": "wood",
-      "type": "fill",
-      "source": "swissmap",
-      "source-layer": "wood",
-      "layout": {
-        "visibility": "visible"
+    const forestStyle = {
+      "version": 8,
+      "sources": {
+        "swissmap": {
+          "type": "vector",
+          "url": "https://wipfli.github.io/swiss-map/tilejson-swissmap.json"
+        }
       },
-      "paint": {
-        "fill-color": "rgb(205, 230, 190)"
-      }
-    },
-   {
-      "id": "water",
-      "type": "fill",
-      "source": "swissmap",
-      "source-layer": "water",
-      "layout": {
-        "visibility": "visible"
+      "glyphs": "https://wipfli.github.io/swiss-map/font/{fontstack}/{range}.pbf",
+      "layers": [{
+        "id": "wood",
+        "type": "fill",
+        "source": "swissmap",
+        "source-layer": "wood",
+        "layout": {
+          "visibility": "visible"
+        },
+        "paint": {
+          "fill-color": "rgb(205, 230, 190)"
+        }
       },
-      "paint": {
-        "fill-color": "#abcdfb"
-      }
-    },]
-};
-const overlayStyle = {
-  "version": 8,
-	"sources": {"swissmap": {
-      "type": "vector",
-      "url": "https://wipfli.github.io/swiss-map/tilejson-swissmap.json"
-    }},
-  "glyphs": "https://wipfli.github.io/swiss-map/font/{fontstack}/{range}.pbf",
-  "layers": []
-};
+      {
+        "id": "water",
+        "type": "fill",
+        "source": "swissmap",
+        "source-layer": "water",
+        "layout": {
+          "visibility": "visible"
+        },
+        "paint": {
+          "fill-color": "#abcdfb"
+        }
+      },]
+    };
+
+    const contourStyle = {
+      "version": 8,
+      "sources": {},
+      "glyphs": "https://wipfli.github.io/swiss-map/font/{fontstack}/{range}.pbf",
+      "layers": []
+    };
 
 
-// Initialise the base and overlay maps
-const mapBase = new maplibregl.Map({
-  container: 'mapBase',
-  style: baseStyle,
-  center: [8, 47],
-  zoom: 10
-});
+    const mapA = new maplibregl.Map({
+      container: 'containerA',
+      style: forestStyle,
+      center: [8, 47],
+      zoom: 10,
+    });
 
-const mapBase2 = new maplibregl.Map({
-  container: 'mapBase2',
-  style: base2Style,
-// style:   'https://wipfli.github.io/swiss-map/style.json',
-center: [8, 47],
-  zoom: 10
-});
+    const mapB = new maplibregl.Map({
+      container: 'containerB',
+      style: hillshadeStyle,
+      center: [8, 47],
+      zoom: 10,
+    });
 
-const mapOverlay = new maplibregl.Map({
-  container: 'mapOverlay',
-  style: overlayStyle,
-// style:   'https://wipfli.github.io/swiss-map/style.json',
-center: [8, 47],
-  zoom: 10
-});
+    const mapC = new maplibregl.Map({
+      container: 'containerC',
+      style: contourStyle,
+      center: [8, 47],
+      zoom: 10,
+    });
 
-mapOverlay.on('load', () => {
+    mapC.on('load', () => {
+      mapC.addSource("contour-source", {
+        type: "vector",
+        tiles: [
+          demSource.contourProtocolUrl({
+            thresholds: {
+              12: [100, 500],
+              14: [20, 100]
+            },
+            contourLayer: "contours",
+            elevationKey: "ele",
+            levelKey: "level",
+            extent: 4096,
+            buffer: 1,
+            overzoom: 2,
+          }),
+        ],
+        maxzoom: 15,
+      });
+      mapC.addLayer({
+        id: "contour-lines",
+        type: "line",
+        source: "contour-source",
+        "source-layer": "contours",
+        paint: {
+          "line-color": "rgba(215, 151, 060, 1)",
+          "line-width": ["match", ["get", "level"], 1, 1, .5],
+          "line-opacity": ["step", ["zoom"], 0.7, 14, 1.0],
 
-mapOverlay.addSource("contour-source", {
-                type: "vector",
-                tiles: [
-                    demSource.contourProtocolUrl({
-                        thresholds: {
-                            // zoom: [minor, major]
-                            13: [100, 500],
-                            15: [20, 100]
-                        },
-                        // optional, override vector tile parameters:
-                        contourLayer: "contours",
-                        elevationKey: "ele",
-                        levelKey: "level",
-                        extent: 4096,
-                        buffer: 1,
-                        overzoom: 2,
-                    }),
-                ],
-                maxzoom: 15,
-            });
-mapOverlay.addLayer({
-                id: "contour-lines",
-                type: "line",
-                source: "contour-source",
-                "source-layer": "contours",
-                paint: {
-                    "line-color": "rgba(215, 151, 060, 1)",
-                    // level = highest index in thresholds array the elevation is a multiple of
-                    "line-width": ["match", ["get", "level"], 1, 1, .5],
-                    "line-opacity": ["step", ["zoom"], 0.7, 14, 1.0],
-                    
-                },
-            });
+        },
+      });
 
-mapOverlay.addLayer({
-                id: "contour-labels",
-                type: "symbol",
-                source: "contour-source",
-                "source-layer": "contours",
-                filter: [">", ["get", "level"], 0],
-                layout: {
-                    "symbol-placement": "line",
-                    "text-size": 14,
-                    "text-field": ['concat', ["number-format", ["get", "ele"], {},], 'm'],
-                    "text-font": ["Fira Sans Regular"],
-                },
-                paint: {
-                    "text-color": "rgba(215, 151, 060, 1)",
-                    "text-halo-color": "white",
-                    "text-halo-width": 5,
-                },
-            });
-           
-});
+      mapC.addLayer({
+        id: "contour-labels",
+        type: "symbol",
+        source: "contour-source",
+        "source-layer": "contours",
+        filter: [">", ["get", "level"], 0],
+        layout: {
+          "symbol-placement": "line",
+          "text-size": 14,
+          "text-field": ['concat', ["number-format", ["get", "ele"], {},], 'm'],
+          "text-font": ["Fira Sans Regular"],
+        },
+        paint: {
+          "text-color": "rgba(215, 151, 060, 1)",
+          "text-halo-color": "white",
+          "text-halo-width": 5,
+        },
+      });
 
-mapOverlay.on('move', () => {
-   var zoom = mapOverlay.getZoom();
-   var center = mapOverlay.getCenter();
-  mapBase.setZoom(zoom);
-  mapBase.setCenter(center);
-  mapBase2.setZoom(zoom);
-  mapBase2.setCenter(center);
-});
+    });
 
+    mapC.on('move', () => {
+      var zoom = mapC.getZoom();
+      var center = mapC.getCenter();
+      mapA.setZoom(zoom);
+      mapA.setCenter(center);
+      mapB.setZoom(zoom);
+      mapB.setCenter(center);
+    });
 
-    </script>
-  </body>
+    document.getElementById('blendToggle').addEventListener('change', (e) => {
+      const enabled = e.target.checked;
+      const canvases = document.querySelectorAll('canvas');
+      canvases.forEach(c => {
+        c.style.mixBlendMode = enabled ? 'multiply' : 'normal';
+      });
+    });
+
+    document.getElementById('contourToggle').addEventListener('change', (e) => {
+      const visible = e.target.checked ? 'visible' : 'none';
+      mapC.setLayoutProperty('contour-lines', 'visibility', visible);
+      mapC.setLayoutProperty('contour-labels', 'visibility', visible);
+    });
+
+  </script>
+</body>
+
 </html>
-
-    
